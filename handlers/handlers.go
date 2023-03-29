@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -83,42 +84,48 @@ func (h *Handler) CreateMeetingAndInvitations(c *gin.Context) {
 // UpdateInvitationStatus method
 func (h *Handler) UpdateInvitationStatus(c *gin.Context) {
 	invitationID := c.Param("id")
-	
-		if invitationID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation ID is required"})
-			return
-		}
-		
-		var statusUpdate = models.StatusUpdate
 
-		if err := c.BindJSON(&statusUpdate); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-			return
-		}
+	if invitationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation ID is required"})
+		return
+	}
 
-		if !h.helper.IsValidStatus(statusUpdate.Status) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
-			return
-		}
+	var statusUpdate =  models.StatusUpdate
 
-		invitationExists, err := h.helper.CheckInvitationExists(invitationID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking invitation existence"})
-			return
-		}
+	if err := c.BindJSON(&statusUpdate); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
 
-		if !invitationExists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation does not exist"})
-			return
-		}
+	if !h.helper.IsValidStatus(statusUpdate.Status) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
+		return
+	}
 
-		if err := h.helper.UpdateInvitationStatus(invitationID, statusUpdate.Status); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating invitation status"})
-			return
-		}
+	invitationExists, err := h.helper.CheckInvitationExists(invitationID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking invitation existence"})
+		return
+	}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Invitation status updated successfully"})
+	if !invitationExists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invitation does not exist"})
+		return
+	}
+
+
+	// Update the invitation status and schedule the meeting if all invitees have accepted
+	err = h.helper.UpdateInvitationStatusAndScheduleMeeting(invitationID, statusUpdate.Status)
+	if err != nil {
+		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating the invitation status and scheduling the meeting"})
+		log.Printf("Error updating the invitation status and scheduling the meeting: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Invitation status updated successfully"})
 }
+
 
 
 //the status of each invitation must be tracked

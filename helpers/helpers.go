@@ -172,3 +172,88 @@ func (h *Helper) FetchUserMeetings(userID string) ([]models.Meeting, error) {
 		}
 		return meetings, nil
 	}
+
+	func (h *Helper) UpdateInvitationStatusAndScheduleMeeting(invitationID string, status string) error {
+    // First, update the invitation status
+    err := h.UpdateInvitationStatus(invitationID, status)
+    if err != nil {
+        return fmt.Errorf("error updating invitation status: %v", err)
+    }
+
+    // If the status is not "accepted", there's no need to check for scheduling the meeting
+    if status != "accepted" {
+        return nil
+    }
+
+    meetingID, err := h.GetMeetingIDByInvitationID(invitationID)
+    if err != nil {
+			return err
+    }
+
+    allAccepted, err := h.CheckIfAllInviteesAccepted(meetingID)
+    if err != nil {
+			return err
+		}
+
+		// If all invitees have accepted the invitation, schedule the meeting
+		if allAccepted {
+			err = h.ScheduleMeeting(meetingID)
+			if err != nil {
+			 return err
+			}
+		}
+
+		return nil
+}
+	
+	func (h *Helper) GetMeetingIDByInvitationID(invitationID string) (int, error) {
+		var meetingID int
+	
+		
+		err := h.db.QueryRow(storage.GetMeetingIDByInvitationIDQuery,sql.Named("invitationID", invitationID)).Scan(&meetingID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return 0, fmt.Errorf("no invitation found with ID: %s", invitationID)
+			}
+			return 0, err
+		}
+	
+		return meetingID, nil
+	}
+
+	func (h *Helper) CheckIfAllInviteesAccepted(meetingID int) (bool, error) {
+		var totalInvitees, acceptedInvitees int
+	
+		
+		err := h.db.QueryRow(storage.TotalQuery,sql.Named("meetingID", meetingID)).Scan(&totalInvitees)
+		if err != nil {
+			return false, fmt.Errorf("error querying total invitees: %v", err)
+		}
+	
+		
+		err = h.db.QueryRow(storage.AcceptedQuery,sql.Named("meetingID", meetingID)).Scan(&acceptedInvitees)
+		if err != nil {
+			return false, fmt.Errorf("error querying accepted invitees: %v", err)
+		}
+	
+		return totalInvitees == acceptedInvitees, nil
+	}
+
+	func (h *Helper) ScheduleMeeting(meetingID int) error {
+		
+		result, err := h.db.Exec(storage.ScheduleMeetingQuery, sql.Named("meetingID", meetingID))
+		if err != nil {
+			return err
+		}
+	
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+	
+		if rowsAffected == 0 {
+			return err
+		}
+	
+		return nil
+	}

@@ -25,4 +25,9 @@ const (
 	FROM meetings m
 	LEFT JOIN invitations i ON m.id = i.meeting_id
 	WHERE m.organizer_id = @organizerID OR i.invitee_id = @inviteeID`
+
+	ScheduleMeetingQuery = "UPDATE meetings SET scheduled = 1 WHERE id = @meetingID"
+	GetMeetingIDByInvitationIDQuery = "SELECT meeting_id FROM invitations WHERE id = @invitationID"
+	TotalQuery = "SELECT COUNT(*) FROM invitations WHERE meeting_id = @meetingID"
+	AcceptedQuery = "SELECT COUNT(*) FROM invitations WHERE meeting_id = @meetingID AND status = 'accepted'"
 )

@@ -22,11 +22,12 @@ CREATE TABLE [dbo].[invitations](
 GO
 
 CREATE TABLE [dbo].[meetings](
-	[id] [int] IDENTITY(1,1) NOT NULL,
-	[event_id] [int] NULL,
-	[organizer_id] [int] NULL,
-	[datetime] [datetime] NOT NULL
-) ON [PRIMARY]
+    [id] [int] IDENTITY(1,1) NOT NULL,
+    [event_id] [int] NULL,
+    [organizer_id] [int] NULL,
+    [datetime] [datetime] NOT NULL,
+    [scheduled] [bit] DEFAULT 0
+) ON [PRIMARY];
 GO
 
 CREATE TABLE [dbo].[organizations] (
