@@ -30,4 +30,4 @@ Get all invitations for a user: GET /users/:id/invitations Get all meetings for 
 
 To run the tests, execute the following command in the project directory:
 
-go test main_test.go This will run the test in the main_test.go file.
+go test -v ./routes This will run the test in the routes file.
